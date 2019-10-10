@@ -64,7 +64,7 @@ def split_pipeline(data, output='FR',test_size=.3,use_scaled=False,use_featureSe
         if use_LASSO:
             selected_columns,dropped_columns = feature_selection_l1(X_train,y_train)
         else:
-            selected_columns,dropped_columns = feature_selection_univariate(Xtrain,ytrain,keep=8)
+            selected_columns,dropped_columns = feature_selection_univariate(X_train,y_train,keep=5)
         X_train = X_train.drop(dropped_columns,axis=1)
         X_test = X_test.drop(dropped_columns,axis=1)
     else:
@@ -135,8 +135,8 @@ def feature_generation(data):
         interactions[new_col_name] = encoder.fit_transform(new_values)
     return data.join(interactions)
 
-def feature_selection_univariate(Xtrain,ytrain,keep=8):
-    selector = SelectKBest(f_classif,k=keep)
+def feature_selection_univariate(Xtrain,ytrain,keep=5):
+    selector = SelectKBest(mutual_info_classif,k=keep)
     Xtrain_new = selector.fit_transform(Xtrain,ytrain)
     selected_features = pd.DataFrame(
         selector.inverse_transform(Xtrain_new),
@@ -148,9 +148,9 @@ def feature_selection_univariate(Xtrain,ytrain,keep=8):
     
     return selected_columns,dropped_columns
 
-def feature_selection_l1(Xtrain,ytrain,c=0.2):
+def feature_selection_l1(Xtrain,ytrain,c=0.07):
     """ Return selected features using logistic regression with an L1 penalty """
-    logistic = LogisticRegression(C=c, penalty="l2", random_state=7).fit(Xtrain,ytrain)
+    logistic = LogisticRegression(C=c, penalty="l1", random_state=7).fit(Xtrain,ytrain)
     model = SelectFromModel(logistic,prefit=True)
     Xtrain_new = model.transform(Xtrain)
     selected_features = pd.DataFrame(model.inverse_transform(Xtrain_new),
@@ -162,7 +162,7 @@ def feature_selection_l1(Xtrain,ytrain,c=0.2):
     
     return selected_columns,dropped_columns
     
-def data_pipeline(use_onehotEncoder=False,use_featureGeneration=False,use_featureSelection=True,use_LASSO=True):
+def data_pipeline(use_onehotEncoder=False,use_featureGeneration=True,use_featureSelection=True,use_LASSO=True):
     data = load_data_from_xlsx()
     if use_onehotEncoder:
         data = one_hot_encode(data)
