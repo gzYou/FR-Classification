@@ -23,12 +23,12 @@ batch_size = 10
 display_step = 10
 decay_rate = 0.96 
 decay_steps = 50 
-use_learning_decay = True
+use_learning_decay = False
 use_dropout = True
 
 # Networks Parameters
-X_train_scaled,y_train,X_test,y_test,X_scaler = data_pipeline() # here just be used to initialize two parameters of 'dim' and 'nclass' 
-dim = X_train_scaled.shape[1]
+X_train,y_train,X_test,y_test,X_scaler, selected_columns = data_pipeline() # here just be used to initialize two parameters of 'dim' and 'nclass' 
+dim = X_train.shape[1]
 nclass = y_train.shape[1]
 n_hidden_1 = 15
 n_hidden_2 = 15
@@ -89,7 +89,7 @@ print ("Functions ready")
 
 
 
-def train(X_train_scaled,y_train,X_test,y_test,X_scaler):
+def train(X_train,y_train,X_test,y_test,X_scaler):
     ntrain = y_train.shape[0]
     ntest = y_test.shape[0]
     # Initializing the variables
@@ -109,7 +109,7 @@ def train(X_train_scaled,y_train,X_test,y_test,X_scaler):
         # Loop over all batches
         for i in range(total_batch):
             randidx = np.random.randint(ntrain, size=batch_size)
-            batch_xs = X_train_scaled[randidx, :]
+            batch_xs = X_train[randidx, :]
             batch_ys = y_train[randidx, :]
             # Fit training using batch data
             if use_dropout:
@@ -123,7 +123,7 @@ def train(X_train_scaled,y_train,X_test,y_test,X_scaler):
         if (epoch+1) % display_step == 0:
             print ("Epoch: %03d/%03d ,learning_rate:%.6f,cost: %.9f" % 
                    (epoch+1, training_epochs, lr_,avg_cost))
-            train_acc = sess.run(accu, feed_dict={x: X_train_scaled, y: y_train,dropout_keep_prob:1.0})
+            train_acc = sess.run(accu, feed_dict={x: X_train, y: y_train,dropout_keep_prob:1.0})
             print (" Training accuracy: %.3f" % (train_acc))
             test_acc,auc = evaluate(sess,X_test,y_test,X_scaler)
             print (" Test accuracy: %.3f" % (test_acc))
@@ -138,9 +138,10 @@ def train(X_train_scaled,y_train,X_test,y_test,X_scaler):
 
 
 def evaluate(sess,X_test,y_test,X_scaler):
-    X_test_scaled = X_scaler.transform(X_test.astype(float))
-    test_acc = sess.run(accu, feed_dict={x: X_test_scaled, y: y_test, dropout_keep_prob: 1.0})
-    probs = sess.run(tf.sigmoid(pred),feed_dict={x: X_test_scaled, y: y_test,dropout_keep_prob:1.0})[:,1]
+    if X_scaler:
+        X_test = X_scaler.transform(X_test.astype(float))
+    test_acc = sess.run(accu, feed_dict={x: X_test, y: y_test, dropout_keep_prob: 1.0})
+    probs = sess.run(tf.sigmoid(pred),feed_dict={x: X_test, y: y_test,dropout_keep_prob:1.0})[:,1]
     auc = roc_auc_score(np.argmax(y_test,1),probs)
     return [test_acc,auc]
 
@@ -153,6 +154,7 @@ def experiments_and_recording():
     record = rec.getRecordFile()
     accuracy_10_runs = []
     auc_10_runs = []
+    selected_features_10_runs = []
     one_10_runs = [
                     training_epochs,
                     batch_size,
@@ -166,16 +168,18 @@ def experiments_and_recording():
                     1
                 ]
     for i in range(10):
-        X_train_scaled,y_train,X_test,y_test,X_scaler = data_pipeline()
-        acc,auc = train(X_train_scaled,y_train,X_test,y_test,X_scaler)
+        X_train,y_train,X_test,y_test,X_scaler,selected_columns = data_pipeline()
+        acc,auc = train(X_train,y_train,X_test,y_test,X_scaler)
         accuracy_10_runs.append(acc)
         auc_10_runs.append(auc)
+        selected_features_10_runs.append(selected_columns)
     one_10_runs.extend(accuracy_10_runs)
     one_10_runs.extend(auc_10_runs)
     one_10_runs.append(np.mean(accuracy_10_runs))
     one_10_runs.append(np.mean(auc_10_runs))
+    one_10_runs.extend(selected_features_10_runs)
     record = record.append(pd.Series(one_10_runs,index=rec.getIndex()),ignore_index=True)
-    record.to_csv('record.csv')
+    record.to_csv('record_fg.csv')
 
 
 experiments_and_recording()
