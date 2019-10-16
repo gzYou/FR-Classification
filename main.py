@@ -17,20 +17,20 @@ from tools import Recording
 tf.set_random_seed(0)
 
 # parameters
-init_learning_rate = 0.006
-training_epochs = 600
+init_learning_rate = 0.003
+training_epochs = 500
 batch_size = 10
 display_step = 10
 decay_rate = 0.96 
 decay_steps = 50 
-use_learning_decay = False
-use_dropout = True
+use_learning_decay = True
+use_dropout = False
 
 # Networks Parameters
 X_train,y_train,X_test,y_test,X_scaler, selected_columns = data_pipeline() # here just be used to initialize two parameters of 'dim' and 'nclass' 
 dim = X_train.shape[1]
 nclass = y_train.shape[1]
-n_hidden_1 = 15
+n_hidden_1 = 25
 n_hidden_2 = 15
 n_hidden_3 = 15
 n_input = dim
@@ -179,7 +179,7 @@ def experiments_and_recording():
     one_10_runs.append(np.mean(auc_10_runs))
     one_10_runs.extend(selected_features_10_runs)
     record = record.append(pd.Series(one_10_runs,index=rec.getIndex()),ignore_index=True)
-    record.to_csv('record_fg.csv')
+    record.to_csv('record_1.csv')
 
 
 experiments_and_recording()

@@ -9,13 +9,13 @@ from sklearn.metrics import roc_auc_score
 from sklearn.feature_selection import SelectKBest,f_classif,mutual_info_classif,SelectFromModel
 from sklearn.linear_model import LogisticRegression
 
-def load_data_from_xlsx(path="./src_data.xlsx",all_features=True):
+def load_data_from_xlsx(path="./src_data.xlsx",all_features=False):
     """
     Load data from file and decide whether 4 features or all features are kept. 
     """
     data = pd.read_excel(path)
     if not all_features:
-        keep_features = ["A_NIH", "A_THALAMUS2", "MIDDLE_BAO", "BATMAN", "FR"]
+        keep_features = ["A_NIH", "A_THALAMUS2", "MIDDLE_BAO", "A_PMI","A_PCASPECTS", "A_CEREBELLUM","FR"]
         data = data.drop(
             [feature for feature in data.columns if feature not in keep_features],
             axis=1,
@@ -47,7 +47,7 @@ def scale(X_train):
 
 
 
-def split_pipeline(data, output='FR',test_size=.3,use_scaled=False,use_featureSelection=True,use_LASSO=True):
+def split_pipeline(data, output='FR',test_size=.3,use_scaled=False,use_featureSelection=False,use_LASSO=False):
     """
     Split data into variables
     Arguments: Pandas dataframe, output column (dependent variable),size of test set(account for all data)
@@ -108,10 +108,11 @@ class Recording():
         Arguments:parameters to be recored
         '''
         return pd.DataFrame(columns=self.index)
-    
+
 
 def feature_generation(data):
     numerical_features = [
+        "AGE",
         "LVOD",
         "LVOP",
         "A_MAP",
@@ -161,8 +162,8 @@ def feature_selection_l1(Xtrain,ytrain,c=0.07):
     dropped_columns = selected_features.columns[selected_features.var() == 0]
     
     return selected_columns,dropped_columns
-    
-def data_pipeline(use_onehotEncoder=False,use_featureGeneration=True,use_featureSelection=True,use_LASSO=True):
+
+def data_pipeline(use_onehotEncoder=False,use_featureGeneration=False,use_featureSelection=False,use_LASSO=False):
     data = load_data_from_xlsx()
     if use_onehotEncoder:
         data = one_hot_encode(data)
